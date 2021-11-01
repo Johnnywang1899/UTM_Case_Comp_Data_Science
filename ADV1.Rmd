@@ -1,0 +1,76 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r, message=F, warning=F}
+library(dplyr)
+library(ggpubr)
+```
+
+```{r}
+load = read.csv("ADV1.csv")
+```
+
+```{r}
+data = load %>%
+  mutate(Activity = factor(Activity, levels = c("Baseline 1", "TV", "Reaeding", "Aerobic Exercise",
+                                                "No Exercise", "Sugar", "No Sugar", "Baseline 2"))) %>%
+  na.omit()
+```
+
+```{r, message=F, warning=F}
+attach(data)
+```
+
+```{r}
+names(data)
+```
+```{r}
+cor(data[c("HR", "BPD", "BPS", "BG")])
+```
+
+
+```{r}
+perm_list = list(c("Baseline 1", "TV", "Aerobic Exercise", "Sugar", "Baseline 2"), 
+                 c("Baseline 1", "Reading", "Aerobic Exercise", "Sugar", "Baseline 2"),
+                 c("Baseline 1", "TV", "No Exercise", "No Sugar", "Baseline 2"))
+
+perm = 1
+subset = data %>% filter(Permutation == perm)
+target = sym('IR')
+group = sym('Activity')
+```
+
+```{r}
+ggline(subset, 
+       x = as.character(group),
+       y = as.character(target), 
+       add = c("mean_se", "jitter"),
+       order = perm_list[perm][[1]],
+       xlab = as.character(group),
+       ylab = as.character(target),
+       title = paste(as.character(target), "VS.", as.character(group), "| Perm =", perm))
+```
+
+```{r}
+res.aov = aov(HR ~ Activity, data = subset)
+summary(res.aov)
+```
+```{r}
+pairwise.t.test(subset[, as.character(target)], 
+                subset[, as.character(group)],
+                p.adjust.method = "BH")
+```
+
+
+```{r}
+subset %>% 
+  select( !!target, !!group) %>%
+  group_by(!!group) %>%
+  summarise(count = n(),
+            mean = mean(!!target),
+            sd = sd(!!target)
+  )
+```
+
